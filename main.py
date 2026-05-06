@@ -75,11 +75,10 @@ df_boston
 # CodeGrade step2
 # Replace None with your code
 df_zero_emp = pd.read_sql("""
-    SELECT o.officeCode, o.city, COUNT(e.employeeNumber) AS num_employees
+    SELECT o.officeCode, o.city
     FROM offices o
     LEFT JOIN employees e ON o.officeCode = e.officeCode
-    GROUP BY o.officeCode
-    HAVING COUNT(e.employeeNumber) = 0
+    WHERE e.employeeNumber IS NULL
 """, conn)
 df_zero_emp
 
@@ -241,15 +240,26 @@ df_customers
 # In[ ]:
 
 
-# CodeGrade step1
+# CodeGrade step10
 # Replace None with your code
-df_boston = pd.read_sql("""
-    SELECT e.firstName, e.lastName
+df_under_20 = pd.read_sql("""
+    SELECT DISTINCT e.employeeNumber, e.firstName, e.lastName, o.city, o.officeCode
     FROM employees e
     JOIN offices o ON e.officeCode = o.officeCode
-    WHERE o.city = 'Boston'
+    JOIN customers c ON e.employeeNumber = c.salesRepEmployeeNumber
+    JOIN orders ord ON c.customerNumber = ord.customerNumber
+    JOIN orderdetails od ON ord.orderNumber = od.orderNumber
+    WHERE od.productCode IN (
+        SELECT p.productCode
+        FROM products p
+        JOIN orderdetails od2 ON p.productCode = od2.productCode
+        JOIN orders o2 ON od2.orderNumber = o2.orderNumber
+        GROUP BY p.productCode
+        HAVING COUNT(DISTINCT o2.customerNumber) < 20
+    )
+    ORDER BY e.lastName
 """, conn)
-df_boston
+df_under_20
 
 
 # ### Close the connection
